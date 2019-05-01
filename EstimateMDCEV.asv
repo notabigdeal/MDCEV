@@ -314,19 +314,19 @@ data = struct('psi', psi, 'price', price, 'quant', quant,...
    'inc', inc, 'C', C, 'weight', weight, 'price_num', price_num, 'exp_num', exp_num,...
    'a', a, 'g', g, 'het_scale', het_scale);
 %% push to gpu 
- quant    = quant(:,sitepos); 
- price    = price(:,sitepos);
- % psi      = gpuArray(psi); 
-% price    = gpuArray(price); 
-% quant    = gpuArray(quant); 
-% inc      = gpuArray(inc); 
-% C        = gpuArray(C); 
-% weight   = gpuArray(weight); 
-% price_num= gpuArray(price_num); 
-% exp_num  = gpuArray(exp_num); 
-% a        = gpuArray(a); 
-% g        = gpuArray(g); 
-% het_scale= gpuArray(het_scale); 
+psi      = gpuArray(psi); 
+price    = price(:,sitepos); 
+price    = gpuArray(price); 
+quant    = quant(:,sitepos); 
+quant    = gpuArray(quant); 
+inc      = gpuArray(inc); 
+C        = gpuArray(C); 
+weight   = gpuArray(weight); 
+price_num= gpuArray(price_num); 
+exp_num  = gpuArray(exp_num); 
+a        = gpuArray(a); 
+g        = gpuArray(g); 
+het_scale= gpuArray(het_scale); 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Store variable names in a structure

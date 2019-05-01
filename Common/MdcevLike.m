@@ -1,4 +1,5 @@
-function ll = MdcevLike(b, data, sizes, ndx)
+function ll = MdcevLike(b,sizes, ndx)
+global psi price quant inc C weight price_num exp_num a g het_scale
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % This function computes the log-likelihood of the Chandra Bhat Kuhn-Tucker Model
 % 
@@ -10,18 +11,18 @@ function ll = MdcevLike(b, data, sizes, ndx)
 %                4.  scale 
 %
 %          data:  struct containing data matrices for parameter types:
-%               - data.psi:  psi variables
-%               - data.price:  price data for each good
-%               - data.quant:  quantities demanded for each good
-%               - data.exp: expenditures on each good
-%               - data.price_num:  numeraire price 
-%               - data.exp_num:  expenditure on numeraire
-%               - data.inc:  Income 
-%               - data.C:  censoring information
-%               - data.wgt:  sampling weights
-%               - data.a: covariates for alpha
-%               - data.g: covariates for gamma    
-%               - data.het_scale: indicator vector for heterogenous scale
+%               - psi:  psi variables
+%               - price:  price data for each good
+%               - quant:  quantities demanded for each good
+%               - exp: expenditures on each good
+%               - price_num:  numeraire price 
+%               - exp_num:  expenditure on numeraire
+%               - inc:  Income 
+%               - C:  censoring information
+%               - wgt:  sampling weights
+%               - a: covariates for alpha
+%               - g: covariates for gamma    
+%               - het_scale: indicator vector for heterogenous scale
 %
 %          sizes:  struct contains sizes of variables and data
 %               - sizes.nvar_psi: number of variables in psi
@@ -65,13 +66,16 @@ like = zeros(sizes.nobs,1);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Create Parameters lpsi, alpha, gamma, scale
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-lpsi = reshape(data.psi*b(ndx.psi(1):ndx.psi(end)), sizes.nobs, sizes.ngoods);
+% reshape is costly, since psi only used once here, we can prepare psi into
+% a matrix [sizes.nobs sizes.ngoods sizes.psi(end) 
+
+lpsi = reshape(psi*b(ndx.psi(1):ndx.psi(end)), sizes.nobs, sizes.ngoods);
 
 if sizes.alpha_rest == 0
-    alpha = reshape(1-exp(data.a*b(ndx.alpha(1):ndx.alpha(end))), sizes.nobs, sizes.ngoods+1); 
+    alpha = reshape(1-exp(a*b(ndx.alpha(1):ndx.alpha(end))), sizes.nobs, sizes.ngoods+1); 
 elseif sizes.alpha_rest == 1     
-    alpha1 = reshape(exp(data.a*b(ndx.alpha(1):ndx.alpha(end))), sizes.nobs, sizes.ngoods+1); 
-    alpha2 = reshape(1+exp(data.a*b(ndx.alpha(1):ndx.alpha(end))), sizes.nobs, sizes.ngoods+1); 
+    alpha1 = reshape(exp(a*b(ndx.alpha(1):ndx.alpha(end))), sizes.nobs, sizes.ngoods+1); 
+    alpha2 = reshape(1+exp(a*b(ndx.alpha(1):ndx.alpha(end))), sizes.nobs, sizes.ngoods+1); 
     alpha = bsxfun(@rdivide, alpha1, alpha2); 
 end
 
@@ -80,25 +84,25 @@ if sizes.scale_type==0
 elseif sizes.scale_type==1
     scale_1 = ones(sizes.nobs, sizes.ngoods+1).*exp(b(ndx.scale(1)));  
     scale_2 = ones(sizes.nobs, sizes.ngoods+1);
-    scale = bsxfun(@times, data.het_scale, scale_1) + bsxfun(@times, (1-data.het_scale), scale_2); 
+    scale = bsxfun(@times, het_scale, scale_1) + bsxfun(@times, (1-het_scale), scale_2); 
 elseif sizes.scale_type==2
     scale_1 = ones(sizes.nobs, sizes.ngoods+1).*exp(b(ndx.scale(1)));  
     scale_2 = ones(sizes.nobs, sizes.ngoods+1).*exp(b(ndx.scale(end)));
-    scale = bsxfun(@times, data.het_scale, scale_1) + bsxfun(@times, (1-data.het_scale), scale_2); 
+    scale = bsxfun(@times, het_scale, scale_1) + bsxfun(@times, (1-het_scale), scale_2); 
 end
 
 if sizes.model_type==2 % Alpha profile - set all gammaK=1
     gamma = ones(sizes.nobs, sizes.ngoods);   
 elseif sizes.model_type==1 || sizes.model_type==3% Gamma/Hybrid Profile - construct gammas
-    gamma = reshape(exp(data.g*b(ndx.gamma(1):ndx.gamma(end))), sizes.nobs, sizes.ngoods);   
+    gamma = reshape(exp(g*b(ndx.gamma(1):ndx.gamma(end))), sizes.nobs, sizes.ngoods);   
 end
 if sizes.model_type==1    %Gamma profile - set non-numeraire alphaK=0
     alpha = [alpha(:,1), zeros(sizes.nobs, sizes.ngoods)]; 
 end
     
-x=[data.exp_num./data.price_num, data.quant]; %Full demand matrix including essential numeraire
+x=[exp_num./price_num, quant]; %Full demand matrix including essential numeraire
 gamma_full = [zeros(sizes.nobs,1), gamma]; %Includes column for numeraire (gamma1=0)
-p=[data.price_num, data.price]; %Full price matrix (including numeraire)
+p=[price_num, price]; %Full price matrix (including numeraire)
 nonzero=(x~=0); %Logical (0,1) matrix indicating nonzero consumption
 M=sum(nonzero,2); %Number of consumed goods (including numeraire)
 
@@ -117,8 +121,8 @@ jacobian=prodf.*pf;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %Log FOC terms for each good
-v=lpsi+(alpha(:,2:end)-1).*log((data.quant./gamma)+1)-log(data.price);
-v=[(alpha(:,1)-1).*log(data.exp_num./data.price_num), v]; %Add numeraire 
+v=lpsi+(alpha(:,2:end)-1).*log((quant./gamma)+1)-log(price);
+v=[(alpha(:,1)-1).*log(exp_num./price_num), v]; %Add numeraire 
 v=v./scale; %Divide by scale
 v=exp(v); %Exponentiate
 
@@ -134,5 +138,5 @@ like=like.*jacobian;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ll=-sum(log(like));
-
+ll = gather(ll); 
 end

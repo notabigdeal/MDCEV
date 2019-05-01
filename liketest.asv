@@ -1,0 +1,27 @@
+tic;
+global
+psi     = gpuArray(data.psi); 
+price   = gpuArray(data.price); 
+quant   = gpuArray(data.price); 
+inc     = gpuArray(data.price); 
+C       = gpuArray(data.price); 
+weight  = gpuArray(data.price); 
+  = gpuArray(data.price); 
+price   = gpuArray(data.price); 
+price   = gpuArray(data.price); 
+price   = gpuArray(data.price); 
+price   = gpuArray(data.price); 
+
+{'price'    }
+    {'quant'    }
+    {'inc'      }
+    {'C'        }
+    {'weight'   }
+    {'price_num'}
+    {'exp_num'  }
+    {'a'        }
+    {'g'        }
+    {'het_scale'}
+
+MdcevLike(b, data, sizes, ndx);
+toc;
